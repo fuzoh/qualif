@@ -12,6 +12,15 @@ function formatPct(value: number | null): string {
   return `${Math.round(value * 100)}%`;
 }
 
+function pctColorClass(value: number | null): string {
+  if (value === null) return "";
+  const pct = value * 100;
+  if (pct < 80) return "text-red-600 dark:text-red-400";
+  if (pct < 90) return "text-orange-600 dark:text-orange-400";
+  if (pct <= 110) return "text-green-600 dark:text-green-400";
+  return "text-blue-600 dark:text-blue-400";
+}
+
 function formatVariance(variance: number): string {
   return `±${Math.round(Math.sqrt(variance) * 100)}%`;
 }
@@ -51,7 +60,7 @@ function SphereRow({
             <td key={pi} className="px-4 py-2 text-center">
               <div className="flex flex-col items-center gap-1">
                 <div className="flex items-center gap-2" style={{ fontSize: "14px" }}>
-                  <span className="font-bold">{formatPct(s.percentage)}</span>
+                  <span className={cn("font-bold", pctColorClass(s.percentage))}>{formatPct(s.percentage)}</span>
                   <PassBadge passed={s.passed} />
                 </div>
                 <div className="text-muted-foreground text-[11px]">
@@ -63,7 +72,7 @@ function SphereRow({
         })}
         <td className="bg-muted/50 px-4 py-2 text-center">
           <div className="flex flex-col items-center gap-1" style={{ fontSize: "14px" }}>
-            <span className="font-bold">
+            <span className={cn("font-bold", gStats ? pctColorClass(gStats.mean) : "")}>
               {gStats ? formatPct(gStats.mean) : "–"}
             </span>
             {gStats && (
@@ -98,7 +107,7 @@ function SphereRow({
                   )}
                   style={{ fontSize: "12px" }}
                 >
-                  <span className="font-medium">{formatPct(pObj.percentage)}</span>
+                  <span className={cn("font-medium", pctColorClass(pObj.percentage))}>{formatPct(pObj.percentage)}</span>
                   {pObj.allFilledButNoComment && (
                     <div className="text-[10px] font-medium text-red-600 dark:text-red-400">
                       Commentaire manquant
@@ -111,7 +120,7 @@ function SphereRow({
               className="bg-muted/50 px-4 py-1.5 text-center"
               style={{ fontSize: "12px" }}
             >
-              <span className="font-medium">
+              <span className={cn("font-medium", gObjStats ? pctColorClass(gObjStats.mean) : "")}>
                 {gObjStats ? formatPct(gObjStats.mean) : "–"}
               </span>
               {gObjStats && (
