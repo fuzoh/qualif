@@ -1,18 +1,29 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { FileUploader } from "@/components/FileUploader";
 import { Dashboard } from "@/components/Dashboard";
 import { parseQualificationFile } from "@/lib/parser";
-import type { GlobalStats, ParticipantData } from "@/lib/parser/types";
+import type { GlobalStats, ParticipantData, SphereId } from "@/lib/parser/types";
 import { computeGlobalStats } from "@/lib/stats";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, X } from "lucide-react";
+import { ArrowDownWideNarrow, Trash2, X } from "lucide-react";
+import { SPHERE_SHEETS } from "@/lib/parser/constants";
 
 export function App() {
   const [participants, setParticipants] = useState<ParticipantData[]>([]);
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [sortBySphere, setSortBySphere] = useState<SphereId | "">("");
+
+  const sortedParticipants = useMemo(() => {
+    if (!sortBySphere) return participants;
+    return [...participants].sort((a, b) => {
+      const aScore = a.spheres.find((s) => s.id === sortBySphere)?.percentage ?? -1;
+      const bScore = b.spheres.find((s) => s.id === sortBySphere)?.percentage ?? -1;
+      return bScore - aScore;
+    });
+  }, [participants, sortBySphere]);
 
   const handleFiles = useCallback(
     async (files: File[]) => {
@@ -118,11 +129,26 @@ export function App() {
                 <Trash2 className="size-3" />
                 Tout supprimer
               </Button>
+              <span className="ml-auto flex items-center gap-1.5 text-sm">
+                <ArrowDownWideNarrow className="text-muted-foreground size-4" />
+                <select
+                  className="border-input bg-background rounded border px-2 py-1 text-xs"
+                  value={sortBySphere}
+                  onChange={(e) => setSortBySphere(e.target.value as SphereId | "")}
+                >
+                  <option value="">Pas de tri</option>
+                  {SPHERE_SHEETS.map(({ id, sheetName }) => (
+                    <option key={id} value={id}>
+                      {sheetName}
+                    </option>
+                  ))}
+                </select>
+              </span>
             </div>
 
             {globalStats && (
               <Dashboard
-                participants={participants}
+                participants={sortedParticipants}
                 globalStats={globalStats}
               />
             )}

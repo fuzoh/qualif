@@ -1,5 +1,6 @@
 import type { GlobalStats, ParticipantData, Sphere } from "@/lib/parser/types";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 interface DashboardProps {
@@ -203,6 +204,51 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
               );
             })}
             <td className="bg-muted/50 px-4 pt-3" />
+          </tr>
+
+          {/* Completion progress bar row */}
+          <tr>
+            <td className="sticky left-0 z-10 max-w-[250px] bg-background pt-2 pr-4 text-sm font-medium break-words">
+              Complétude
+            </td>
+            {participants.map((p, i) => {
+              let totalFilled = 0;
+              let totalIndicators = 0;
+              for (const s of p.spheres) {
+                totalFilled += s.indicatorsFilled;
+                totalIndicators += s.indicatorsTotal;
+              }
+              const pct = totalIndicators > 0 ? Math.round((totalFilled / totalIndicators) * 100) : 0;
+              return (
+                <td key={i} className="px-4 pt-2">
+                  <Progress value={pct} className="w-full">
+                    <span className="text-muted-foreground w-full text-center text-[10px] tabular-nums">
+                      {pct}%
+                    </span>
+                  </Progress>
+                </td>
+              );
+            })}
+            <td className="bg-muted/50 px-4 pt-2">
+              {(() => {
+                let totalFilled = 0;
+                let totalIndicators = 0;
+                for (const p of participants) {
+                  for (const s of p.spheres) {
+                    totalFilled += s.indicatorsFilled;
+                    totalIndicators += s.indicatorsTotal;
+                  }
+                }
+                const pct = totalIndicators > 0 ? Math.round((totalFilled / totalIndicators) * 100) : 0;
+                return (
+                  <Progress value={pct} className="w-full">
+                    <span className="text-muted-foreground w-full text-center text-[10px] tabular-nums">
+                      {pct}%
+                    </span>
+                  </Progress>
+                );
+              })()}
+            </td>
           </tr>
         </tbody>
       </table>
