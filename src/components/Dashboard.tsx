@@ -220,9 +220,17 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
                     const mean = pcts.reduce((a, b) => a + b, 0) / pcts.length;
                     const variance = pcts.reduce((a, v) => a + (v - mean) ** 2, 0) / pcts.length;
                     const total = Math.round(mean * 100);
+                    const objPcts = p.spheres.flatMap((s) => s.objectives.map((o) => o.percentage)).filter((v): v is number => v !== null);
+                    const objVarianceStr = objPcts.length >= 2
+                      ? (() => {
+                          const objMean = objPcts.reduce((a, b) => a + b, 0) / objPcts.length;
+                          const objVar = objPcts.reduce((a, v) => a + (v - objMean) ** 2, 0) / objPcts.length;
+                          return ` (${formatVariance(objVar)})`;
+                        })()
+                      : "";
                     return (
                       <div className="text-muted-foreground text-[10px] font-normal">
-                        {formatVariance(variance)} &middot; {total}%
+                        {formatVariance(variance)} &middot; {total}%{objVarianceStr}
                       </div>
                     );
                   })()}

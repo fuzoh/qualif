@@ -89,8 +89,7 @@ export function computeAllScores(sphere: Sphere): void {
     obj.indicatorsFilled = objFilled;
     obj.indicatorsTotal = objTotal;
     obj.allFilledButNoComment =
-      objTotal > 0 &&
-      objFilled === objTotal &&
+      objFilled > 0 &&
       (obj.comment === null || obj.comment.trim() === "");
 
     totalFilled += objFilled;
