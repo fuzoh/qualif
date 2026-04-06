@@ -24,7 +24,7 @@ export function App() {
   const [globalStats, setGlobalStats] = useState<GlobalStats | null>(initial.globalStats);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
-  const [sortBySphere, setSortBySphere] = useState<SphereId | "">("");
+  const [sortBy, setSortBy] = useState<string>("");
 
   const updateParticipants = useCallback((updated: ParticipantData[]) => {
     setParticipants(updated);
@@ -33,13 +33,28 @@ export function App() {
   }, []);
 
   const sortedParticipants = useMemo(() => {
-    if (!sortBySphere) return participants;
+    if (!sortBy) return participants;
     return [...participants].sort((a, b) => {
-      const aScore = a.spheres.find((s) => s.id === sortBySphere)?.percentage ?? -1;
-      const bScore = b.spheres.find((s) => s.id === sortBySphere)?.percentage ?? -1;
+      if (sortBy === "name") {
+        const aName = (a.totem || a.prenom).toLowerCase();
+        const bName = (b.totem || b.prenom).toLowerCase();
+        return aName.localeCompare(bName);
+      }
+      if (sortBy === "variance") {
+        const variance = (p: ParticipantData) => {
+          const pcts = p.spheres.map((s) => s.percentage).filter((v): v is number => v !== null);
+          if (pcts.length < 2) return 0;
+          const mean = pcts.reduce((a, b) => a + b, 0) / pcts.length;
+          return pcts.reduce((a, v) => a + (v - mean) ** 2, 0) / pcts.length;
+        };
+        return variance(b) - variance(a);
+      }
+      // Sort by sphere id (A, B, C)
+      const aScore = a.spheres.find((s) => s.id === sortBy)?.percentage ?? -1;
+      const bScore = b.spheres.find((s) => s.id === sortBy)?.percentage ?? -1;
       return bScore - aScore;
     });
-  }, [participants, sortBySphere]);
+  }, [participants, sortBy]);
 
   const handleFiles = useCallback(
     async (files: File[]) => {
@@ -96,7 +111,49 @@ export function App() {
           </p>
         </div>
 
-        <FileUploader onFilesSelected={handleFiles} isLoading={isLoading} />
+        <div className="grid grid-cols-2 gap-4">
+          <FileUploader onFilesSelected={handleFiles} isLoading={isLoading} />
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {participants.length > 0 && (
+                <>
+                  <span className="text-sm font-medium">
+                    {participants.length} participant{participants.length > 1 ? "s" : ""}:
+                  </span>
+                  {participants.map((p, i) => (
+                    <Badge key={i} variant="secondary" className="gap-1 pr-1">
+                      {p.totem || p.prenom}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-4"
+                        onClick={() => removeParticipant(i)}
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    </Badge>
+                  ))}
+                </>
+              )}
+            </div>
+            {participants.length > 0 && (
+              <div className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground text-xs"
+                  onClick={() => {
+                    updateParticipants([]);
+                    clearParticipants();
+                  }}
+                >
+                  <Trash2 className="size-3" />
+                  Tout supprimer
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
 
         {errors.length > 0 && (
           <div className="space-y-1">
@@ -113,50 +170,22 @@ export function App() {
 
         {participants.length > 0 && (
           <>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium">
-                {participants.length} participant{participants.length > 1 ? "s" : ""}:
-              </span>
-              {participants.map((p, i) => (
-                <Badge key={i} variant="secondary" className="gap-1 pr-1">
-                  {p.totem}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-4"
-                    onClick={() => removeParticipant(i)}
-                  >
-                    <X className="size-3" />
-                  </Button>
-                </Badge>
-              ))}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground text-xs"
-                onClick={() => {
-                  updateParticipants([]);
-                  clearParticipants();
-                }}
+            <div className="flex items-center gap-1.5 text-sm">
+              <ArrowDownWideNarrow className="text-muted-foreground size-4" />
+              <select
+                className="border-input bg-background rounded border px-2 py-1 text-xs"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
               >
-                <Trash2 className="size-3" />
-                Tout supprimer
-              </Button>
-              <span className="ml-auto flex items-center gap-1.5 text-sm">
-                <ArrowDownWideNarrow className="text-muted-foreground size-4" />
-                <select
-                  className="border-input bg-background rounded border px-2 py-1 text-xs"
-                  value={sortBySphere}
-                  onChange={(e) => setSortBySphere(e.target.value as SphereId | "")}
-                >
-                  <option value="">Pas de tri</option>
-                  {SPHERE_SHEETS.map(({ id, sheetName }) => (
-                    <option key={id} value={id}>
-                      {sheetName}
-                    </option>
-                  ))}
-                </select>
-              </span>
+                <option value="">Pas de tri</option>
+                <option value="name">Totem / Prénom</option>
+                <option value="variance">Variance entre sphères</option>
+                {SPHERE_SHEETS.map(({ id, sheetName }) => (
+                  <option key={id} value={id}>
+                    {sheetName}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {globalStats && (
