@@ -157,8 +157,8 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
           <col className="w-[250px] max-w-[250px]" />
         </colgroup>
         <thead>
-          <tr className="border-b-2 bg-muted/30">
-            <th className="sticky left-0 z-10 max-w-[250px] bg-muted/30 pr-4 pb-2 text-left">
+          <tr className="border-b-2 bg-muted">
+            <th className="sticky left-0 z-10 max-w-[250px] bg-muted pr-4 pb-2 text-left">
               Participant
             </th>
             {participants.map((p, i) => {
@@ -195,8 +195,8 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
           ))}
 
           {/* Comment fill rate footer */}
-          <tr className="border-t-2 border-foreground/20 bg-muted/30">
-            <td className="sticky left-0 z-10 max-w-[250px] bg-muted/30 pt-3 pr-4 text-sm font-medium break-words">
+          <tr className="border-t-2 border-foreground/20 bg-muted">
+            <td className="sticky left-0 z-10 max-w-[250px] bg-muted pt-3 pr-4 text-sm font-medium break-words">
               Commentaires d&apos;objectifs
             </td>
             {participants.map((p, i) => {
@@ -220,8 +220,8 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
           </tr>
 
           {/* Completion progress bar row */}
-          <tr className="bg-muted/30">
-            <td className="sticky left-0 z-10 max-w-[250px] bg-muted/30 pt-2 pr-4 text-sm font-medium break-words">
+          <tr className="bg-muted">
+            <td className="sticky left-0 z-10 max-w-[250px] bg-muted pt-2 pr-4 text-sm font-medium break-words">
               Complétude
             </td>
             {participants.map((p, i) => {
@@ -242,26 +242,7 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
                 </td>
               );
             })}
-            <td className="bg-muted/50 px-4 pt-2">
-              {(() => {
-                let totalFilled = 0;
-                let totalIndicators = 0;
-                for (const p of participants) {
-                  for (const s of p.spheres) {
-                    totalFilled += s.indicatorsFilled;
-                    totalIndicators += s.indicatorsTotal;
-                  }
-                }
-                const pct = totalIndicators > 0 ? Math.round((totalFilled / totalIndicators) * 100) : 0;
-                return (
-                  <Progress value={pct} className="w-full">
-                    <span className="text-muted-foreground w-full text-center text-[10px] tabular-nums">
-                      {pct}%
-                    </span>
-                  </Progress>
-                );
-              })()}
-            </td>
+            <td className="bg-muted/50 px-4 pt-2" />
           </tr>
         </tbody>
       </table>
