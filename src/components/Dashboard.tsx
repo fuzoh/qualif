@@ -64,7 +64,7 @@ function SphereRow({
     <>
       {/* Sphere header row */}
       <tr className={cn("border-t-2 border-foreground/20", SPHERE_HEADER_BG[sphereId])}>
-        <td className={cn("sticky left-0 z-10 max-w-[250px] py-2 pr-4 font-bold break-words", SPHERE_HEADER_BG[sphereId] ?? "bg-background")} style={{ fontSize: "14px" }}>
+        <td className={cn("sticky left-0 z-10 max-w-[250px] py-2 pr-4 pl-2 font-bold break-words", SPHERE_HEADER_BG[sphereId] ?? "bg-background")} style={{ fontSize: "14px" }}>
           <button
             onClick={onToggle}
             className="flex items-center gap-1"
@@ -164,9 +164,9 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
   const refSpheres = participants[0].spheres;
 
   const [collapsedSpheres, setCollapsedSpheres] = useState<Record<SphereId, boolean>>({
-    A: false,
-    B: false,
-    C: false,
+    A: true,
+    B: true,
+    C: true,
   });
 
   const toggleSphere = (id: SphereId) => {
@@ -174,14 +174,14 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto rounded border">
       <table className="w-max min-w-full border-collapse">
         <colgroup>
           <col className="w-[250px] max-w-[250px]" />
         </colgroup>
         <thead className="sticky top-0 z-20">
           <tr className="border-b-2 bg-muted">
-            <th className="sticky left-0 z-30 max-w-[250px] bg-muted pr-4 pb-2 text-left">
+            <th className="sticky left-0 z-30 max-w-[250px] bg-muted py-2 pr-4 pl-2 text-left">
               Participant
             </th>
             {participants.map((p, i) => {
@@ -232,7 +232,7 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
 
           {/* Comment fill rate footer */}
           <tr className="border-t-2 border-foreground/20 bg-muted">
-            <td className="sticky left-0 z-10 max-w-[250px] bg-muted pt-3 pr-4 text-sm font-medium break-words">
+            <td className="sticky left-0 z-10 max-w-[250px] bg-muted pt-3 pr-4 pl-2 text-sm font-medium break-words">
               Commentaires d&apos;objectifs
             </td>
             {participants.map((p, i) => {
@@ -257,7 +257,7 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
 
           {/* Completion progress bar row */}
           <tr className="bg-muted">
-            <td className="sticky left-0 z-10 max-w-[250px] bg-muted pt-2 pr-4 text-sm font-medium break-words">
+            <td className="sticky left-0 z-10 max-w-[250px] bg-muted py-2 pr-4 pl-2 text-sm font-medium break-words">
               Complétude
             </td>
             {participants.map((p, i) => {

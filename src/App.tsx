@@ -102,7 +102,7 @@ export function App() {
   );
 
   return (
-    <div className="min-h-svh p-6">
+    <div className="min-h-svh p-3">
       <div className="mx-auto max-w-[1400px] space-y-6">
         <div>
           <h1 className="text-xl font-bold">Synthèse des qualifications</h1>
@@ -137,7 +137,7 @@ export function App() {
               )}
             </div>
             {participants.length > 0 && (
-              <div className="flex justify-end">
+              <div className="flex items-center justify-end gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -150,6 +150,23 @@ export function App() {
                   <Trash2 className="size-3" />
                   Tout supprimer
                 </Button>
+                <span className="flex items-center gap-1.5">
+                  <ArrowDownWideNarrow className="text-muted-foreground size-4" />
+                  <select
+                    className="border-input bg-background rounded border px-2 py-1 text-xs"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <option value="">Pas de tri</option>
+                    <option value="name">Totem / Prénom</option>
+                    <option value="variance">Variance entre sphères</option>
+                    {SPHERE_SHEETS.map(({ id, sheetName }) => (
+                      <option key={id} value={id}>
+                        {sheetName}
+                      </option>
+                    ))}
+                  </select>
+                </span>
               </div>
             )}
           </div>
@@ -170,24 +187,6 @@ export function App() {
 
         {participants.length > 0 && (
           <>
-            <div className="flex items-center gap-1.5 text-sm">
-              <ArrowDownWideNarrow className="text-muted-foreground size-4" />
-              <select
-                className="border-input bg-background rounded border px-2 py-1 text-xs"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="">Pas de tri</option>
-                <option value="name">Totem / Prénom</option>
-                <option value="variance">Variance entre sphères</option>
-                {SPHERE_SHEETS.map(({ id, sheetName }) => (
-                  <option key={id} value={id}>
-                    {sheetName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             {globalStats && (
               <Dashboard
                 participants={sortedParticipants}
