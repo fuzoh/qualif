@@ -195,6 +195,17 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
                     {allPassed ? "Réussi" : "Échoué"}
                   </Badge>
                   <div className="font-bold">{p.totem || p.prenom}</div>
+                  {(() => {
+                    const pcts = p.spheres.map((s) => s.percentage).filter((v): v is number => v !== null);
+                    if (pcts.length < 2) return null;
+                    const mean = pcts.reduce((a, b) => a + b, 0) / pcts.length;
+                    const variance = pcts.reduce((a, v) => a + (v - mean) ** 2, 0) / pcts.length;
+                    return (
+                      <div className="text-muted-foreground text-[10px] font-normal">
+                        {formatVariance(variance)}
+                      </div>
+                    );
+                  })()}
                 </th>
               );
             })}
