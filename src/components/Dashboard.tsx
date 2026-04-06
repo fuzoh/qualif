@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { GlobalStats, ParticipantData, Sphere, SphereId } from "@/lib/parser/types";
-import { computeNeededPercentage, computeThresholdPercentage } from "@/lib/parser/scoring";
+import { computeThresholdPercentage } from "@/lib/parser/scoring";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -125,9 +125,7 @@ function SphereRow({
 
                 // If objective has no score, show hint
                 if (pObj.percentage === null) {
-                  const hint = pSphere.passed
-                    ? computeThresholdPercentage(pSphere, oi)
-                    : computeNeededPercentage(pSphere, oi);
+                  const hint = computeThresholdPercentage(pSphere, oi);
                   return (
                     <td key={pi} className="px-4 py-1.5 text-center" style={{ fontSize: "12px" }}>
                       {hint !== null ? (

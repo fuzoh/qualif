@@ -116,76 +116,50 @@ export function mapPercentageToRawScore(pct: number): number {
 }
 
 /**
- * For a sphere, compute what percentage an empty objective would need
- * to bring the sphere to exactly the pass threshold (80%).
- * Returns null if the objective already has a score.
- */
-export function computeNeededPercentage(
-  sphere: Sphere,
-  objectiveIndex: number,
-): number | null {
-  const obj = sphere.objectives[objectiveIndex];
-  if (obj.rawScore !== null) return null;
-
-  // Gather existing weighted sum and total weight (excluding the target objective)
-  let existingWeightedSum = 0;
-  let existingWeightSum = 0;
-  for (let i = 0; i < sphere.objectives.length; i++) {
-    if (i === objectiveIndex) continue;
-    const o = sphere.objectives[i];
-    if (o.rawScore !== null) {
-      existingWeightedSum += o.rawScore * o.weight;
-      existingWeightSum += o.weight;
-    }
-  }
-
-  const targetWeight = obj.weight;
-  const totalWeight = existingWeightSum + targetWeight;
-
-  // We need: mapScoreToPercentage((existingWeightedSum + x * targetWeight) / totalWeight) = PASS_THRESHOLD
-  // So: (existingWeightedSum + x * targetWeight) / totalWeight = mapPercentageToRawScore(PASS_THRESHOLD)
-  const neededSphereRaw = mapPercentageToRawScore(PASS_THRESHOLD);
-  const neededObjRaw = (neededSphereRaw * totalWeight - existingWeightedSum) / targetWeight;
-
-  // Clamp to valid range and convert to percentage
-  if (neededObjRaw < 1) return mapScoreToPercentage(1);
-  if (neededObjRaw > 5) return null; // impossible even with max score
-  return mapScoreToPercentage(round2(neededObjRaw));
-}
-
-/**
- * For a passing sphere, compute the worst percentage an empty objective
- * could get that would still keep the sphere passing.
- * Returns null if the objective already has a score.
+ * For a sphere with empty objectives, compute the threshold percentage
+ * for a given empty objective to bring/keep the sphere at exactly 80%.
+ *
+ * Other empty objectives are assumed to score at exactly 80% (threshold raw score).
+ * This distributes the burden fairly across all empty objectives.
+ *
+ * Returns null if the objective already has a score or if 80% is unreachable.
  */
 export function computeThresholdPercentage(
   sphere: Sphere,
   objectiveIndex: number,
 ): number | null {
-  const obj = sphere.objectives[objectiveIndex];
-  if (obj.rawScore !== null) return null;
+  const target = sphere.objectives[objectiveIndex];
+  if (target.rawScore !== null) return null;
 
-  let existingWeightedSum = 0;
-  let existingWeightSum = 0;
+  const thresholdRaw = mapPercentageToRawScore(PASS_THRESHOLD);
+
+  // Sum contributions from all objectives:
+  // - Known objectives: use their actual rawScore
+  // - Other empty objectives: assume they score at threshold (80% → rawScore 2.6)
+  // - Target objective: solve for its rawScore
+  let knownWeightedSum = 0;
+  let totalWeight = 0;
+
   for (let i = 0; i < sphere.objectives.length; i++) {
-    if (i === objectiveIndex) continue;
     const o = sphere.objectives[i];
+    totalWeight += o.weight;
+    if (i === objectiveIndex) continue;
+
     if (o.rawScore !== null) {
-      existingWeightedSum += o.rawScore * o.weight;
-      existingWeightSum += o.weight;
+      knownWeightedSum += o.rawScore * o.weight;
+    } else {
+      // Other empty objective: assume threshold score
+      knownWeightedSum += thresholdRaw * o.weight;
     }
   }
 
-  const targetWeight = obj.weight;
-  const totalWeight = existingWeightSum + targetWeight;
+  // Solve: (knownWeightedSum + targetRaw * targetWeight) / totalWeight = thresholdRaw
+  const targetRaw =
+    (thresholdRaw * totalWeight - knownWeightedSum) / target.weight;
 
-  // What raw score would bring the sphere to exactly 80%?
-  const thresholdRaw = mapPercentageToRawScore(PASS_THRESHOLD);
-  const minObjRaw = (thresholdRaw * totalWeight - existingWeightedSum) / targetWeight;
-
-  if (minObjRaw < 1) return mapScoreToPercentage(1);
-  if (minObjRaw > 5) return null;
-  return mapScoreToPercentage(round2(minObjRaw));
+  if (targetRaw > 5) return null; // impossible even with max score
+  if (targetRaw < 1) return mapScoreToPercentage(1); // even score of 1 is enough
+  return mapScoreToPercentage(round2(targetRaw));
 }
 
 function round2(n: number): number {
