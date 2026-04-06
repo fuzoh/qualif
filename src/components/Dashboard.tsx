@@ -171,10 +171,7 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
                   >
                     {allPassed ? "Réussi" : "Échoué"}
                   </Badge>
-                  <div className="font-bold">{p.totem}</div>
-                  <div className="text-muted-foreground text-xs font-normal">
-                    {p.prenom} {p.nom}
-                  </div>
+                  <div className="font-bold">{p.totem || p.prenom}</div>
                 </th>
               );
             })}
