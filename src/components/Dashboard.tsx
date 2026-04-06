@@ -289,7 +289,7 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
               }
               const pct = totalIndicators > 0 ? Math.round((totalFilled / totalIndicators) * 100) : 0;
               return (
-                <td key={i} className="px-4 pt-2">
+                <td key={i} className="px-4 py-2">
                   <Progress value={pct} className="w-full">
                     <span className="text-muted-foreground w-full text-center text-[10px] tabular-nums">
                       {pct}%
@@ -298,7 +298,7 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
                 </td>
               );
             })}
-            <td className="bg-muted/50 px-4 pt-2" />
+            <td className="bg-muted/50 px-4 py-2" />
           </tr>
         </tbody>
       </table>
