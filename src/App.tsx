@@ -4,17 +4,33 @@ import { Dashboard } from "@/components/Dashboard";
 import { parseQualificationFile } from "@/lib/parser";
 import type { GlobalStats, ParticipantData, SphereId } from "@/lib/parser/types";
 import { computeGlobalStats } from "@/lib/stats";
+import { loadParticipants, saveParticipants, clearParticipants } from "@/lib/storage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowDownWideNarrow, Trash2, X } from "lucide-react";
 import { SPHERE_SHEETS } from "@/lib/parser/constants";
 
+function initState(): { participants: ParticipantData[]; globalStats: GlobalStats | null } {
+  const participants = loadParticipants();
+  return {
+    participants,
+    globalStats: participants.length > 0 ? computeGlobalStats(participants) : null,
+  };
+}
+
 export function App() {
-  const [participants, setParticipants] = useState<ParticipantData[]>([]);
-  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(null);
+  const [initial] = useState(initState);
+  const [participants, setParticipants] = useState<ParticipantData[]>(initial.participants);
+  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(initial.globalStats);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [sortBySphere, setSortBySphere] = useState<SphereId | "">("");
+
+  const updateParticipants = useCallback((updated: ParticipantData[]) => {
+    setParticipants(updated);
+    setGlobalStats(updated.length > 0 ? computeGlobalStats(updated) : null);
+    saveParticipants(updated);
+  }, []);
 
   const sortedParticipants = useMemo(() => {
     if (!sortBySphere) return participants;
@@ -35,18 +51,6 @@ export function App() {
       for (const file of files) {
         try {
           const data = await parseQualificationFile(file);
-
-          // Check for duplicates
-          const isDuplicate = participants.some(
-            (p) => p.totem === data.totem && p.nom === data.nom,
-          );
-          if (isDuplicate) {
-            newErrors.push(
-              `"${file.name}" ignoré: ${data.totem} (${data.prenom} ${data.nom}) déjà chargé`,
-            );
-            continue;
-          }
-
           newParticipants.push(data);
         } catch (e) {
           newErrors.push(
@@ -55,22 +59,31 @@ export function App() {
         }
       }
 
-      const updated = [...participants, ...newParticipants];
-      setParticipants(updated);
-      setGlobalStats(updated.length > 0 ? computeGlobalStats(updated) : null);
+      // Merge: replace existing participants with same totem+nom, add new ones
+      const updated = [...participants];
+      for (const np of newParticipants) {
+        const existingIdx = updated.findIndex(
+          (p) => p.totem === np.totem && p.nom === np.nom,
+        );
+        if (existingIdx !== -1) {
+          updated[existingIdx] = np;
+        } else {
+          updated.push(np);
+        }
+      }
+
+      updateParticipants(updated);
       setErrors(newErrors);
       setIsLoading(false);
     },
-    [participants],
+    [participants, updateParticipants],
   );
 
   const removeParticipant = useCallback(
     (index: number) => {
-      const updated = participants.filter((_, i) => i !== index);
-      setParticipants(updated);
-      setGlobalStats(updated.length > 0 ? computeGlobalStats(updated) : null);
+      updateParticipants(participants.filter((_, i) => i !== index));
     },
-    [participants],
+    [participants, updateParticipants],
   );
 
   return (
@@ -122,8 +135,8 @@ export function App() {
                 size="sm"
                 className="text-muted-foreground text-xs"
                 onClick={() => {
-                  setParticipants([]);
-                  setGlobalStats(null);
+                  updateParticipants([]);
+                  clearParticipants();
                 }}
               >
                 <Trash2 className="size-3" />
