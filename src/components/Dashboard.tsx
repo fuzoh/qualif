@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { GlobalStats, ParticipantData, Sphere, SphereId } from "@/lib/parser/types";
+import { computeNeededPercentage, computeThresholdPercentage } from "@/lib/parser/scoring";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -118,8 +119,28 @@ function SphereRow({
                 {obj.label}
               </td>
               {participants.map((p, pi) => {
-                const pObj = p.spheres[sphereIndex].objectives[oi];
+                const pSphere = p.spheres[sphereIndex];
+                const pObj = pSphere.objectives[oi];
                 if (!pObj) return <td key={pi} className="px-4 text-center">–</td>;
+
+                // If objective has no score, show hint
+                if (pObj.percentage === null) {
+                  const hint = pSphere.passed
+                    ? computeThresholdPercentage(pSphere, oi)
+                    : computeNeededPercentage(pSphere, oi);
+                  return (
+                    <td key={pi} className="px-4 py-1.5 text-center" style={{ fontSize: "12px" }}>
+                      {hint !== null ? (
+                        <span className="text-muted-foreground/60 text-[11px]">
+                          {pSphere.passed ? `< ${formatPct(hint)}` : `> ${formatPct(hint)}`}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">–</span>
+                      )}
+                    </td>
+                  );
+                }
+
                 return (
                   <td
                     key={pi}

@@ -105,6 +105,89 @@ export function computeAllScores(sphere: Sphere): void {
   sphere.indicatorsTotal = totalIndicators;
 }
 
+/**
+ * Inverse of mapScoreToPercentage: percentage → raw score (1-5 scale).
+ * pct <= 1.0 → n = pct*2 + 1
+ * pct > 1.0 → n = (pct-1)/0.25 + 3
+ */
+export function mapPercentageToRawScore(pct: number): number {
+  if (pct <= 1.0) return round2(pct * 2 + 1);
+  return round2((pct - 1) / 0.25 + 3);
+}
+
+/**
+ * For a sphere, compute what percentage an empty objective would need
+ * to bring the sphere to exactly the pass threshold (80%).
+ * Returns null if the objective already has a score.
+ */
+export function computeNeededPercentage(
+  sphere: Sphere,
+  objectiveIndex: number,
+): number | null {
+  const obj = sphere.objectives[objectiveIndex];
+  if (obj.rawScore !== null) return null;
+
+  // Gather existing weighted sum and total weight (excluding the target objective)
+  let existingWeightedSum = 0;
+  let existingWeightSum = 0;
+  for (let i = 0; i < sphere.objectives.length; i++) {
+    if (i === objectiveIndex) continue;
+    const o = sphere.objectives[i];
+    if (o.rawScore !== null) {
+      existingWeightedSum += o.rawScore * o.weight;
+      existingWeightSum += o.weight;
+    }
+  }
+
+  const targetWeight = obj.weight;
+  const totalWeight = existingWeightSum + targetWeight;
+
+  // We need: mapScoreToPercentage((existingWeightedSum + x * targetWeight) / totalWeight) = PASS_THRESHOLD
+  // So: (existingWeightedSum + x * targetWeight) / totalWeight = mapPercentageToRawScore(PASS_THRESHOLD)
+  const neededSphereRaw = mapPercentageToRawScore(PASS_THRESHOLD);
+  const neededObjRaw = (neededSphereRaw * totalWeight - existingWeightedSum) / targetWeight;
+
+  // Clamp to valid range and convert to percentage
+  if (neededObjRaw < 1) return mapScoreToPercentage(1);
+  if (neededObjRaw > 5) return null; // impossible even with max score
+  return mapScoreToPercentage(round2(neededObjRaw));
+}
+
+/**
+ * For a passing sphere, compute the worst percentage an empty objective
+ * could get that would still keep the sphere passing.
+ * Returns null if the objective already has a score.
+ */
+export function computeThresholdPercentage(
+  sphere: Sphere,
+  objectiveIndex: number,
+): number | null {
+  const obj = sphere.objectives[objectiveIndex];
+  if (obj.rawScore !== null) return null;
+
+  let existingWeightedSum = 0;
+  let existingWeightSum = 0;
+  for (let i = 0; i < sphere.objectives.length; i++) {
+    if (i === objectiveIndex) continue;
+    const o = sphere.objectives[i];
+    if (o.rawScore !== null) {
+      existingWeightedSum += o.rawScore * o.weight;
+      existingWeightSum += o.weight;
+    }
+  }
+
+  const targetWeight = obj.weight;
+  const totalWeight = existingWeightSum + targetWeight;
+
+  // What raw score would bring the sphere to exactly 80%?
+  const thresholdRaw = mapPercentageToRawScore(PASS_THRESHOLD);
+  const minObjRaw = (thresholdRaw * totalWeight - existingWeightedSum) / targetWeight;
+
+  if (minObjRaw < 1) return mapScoreToPercentage(1);
+  if (minObjRaw > 5) return null;
+  return mapScoreToPercentage(round2(minObjRaw));
+}
+
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
