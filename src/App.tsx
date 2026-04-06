@@ -49,6 +49,17 @@ export function App() {
         };
         return variance(b) - variance(a);
       }
+      if (sortBy === "overall") {
+        const overall = (p: ParticipantData) => {
+          const pcts = p.spheres.map((s) => s.percentage).filter((v): v is number => v !== null);
+          return pcts.length > 0 ? pcts.reduce((a, b) => a + b, 0) / pcts.length : -1;
+        };
+        return overall(b) - overall(a);
+      }
+      if (sortBy === "comments") {
+        const missing = (p: ParticipantData) => p.objectiveCommentsTotal - p.objectiveCommentsFilled;
+        return missing(b) - missing(a);
+      }
       // Sort by sphere id (A, B, C)
       const aScore = a.spheres.find((s) => s.id === sortBy)?.percentage ?? -1;
       const bScore = b.spheres.find((s) => s.id === sortBy)?.percentage ?? -1;
@@ -158,8 +169,10 @@ export function App() {
                     onChange={(e) => setSortBy(e.target.value)}
                   >
                     <option value="">Pas de tri</option>
+                    <option value="overall">Meilleur global</option>
                     <option value="name">Totem / Prénom</option>
                     <option value="variance">Variance entre sphères</option>
+                    <option value="comments">Commentaires à compléter</option>
                     {SPHERE_SHEETS.map(({ id, sheetName }) => (
                       <option key={id} value={id}>
                         {sheetName}
