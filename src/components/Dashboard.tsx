@@ -51,7 +51,7 @@ function SphereRow({
     <>
       {/* Sphere header row */}
       <tr className="border-t-2 border-foreground/20">
-        <td className="sticky left-0 z-10 bg-background py-2 pr-4 font-bold" style={{ fontSize: "14px" }}>
+        <td className="sticky left-0 z-10 max-w-[250px] bg-background py-2 pr-4 font-bold break-words" style={{ fontSize: "14px" }}>
           {sphere.name}
         </td>
         {participants.map((p, pi) => {
@@ -90,7 +90,7 @@ function SphereRow({
         return (
           <tr key={oi} className="border-t border-muted">
             <td
-              className="sticky left-0 z-10 bg-background py-1.5 pr-4 pl-4"
+              className="sticky left-0 z-10 max-w-[250px] bg-background py-1.5 pr-4 pl-4 break-words"
               style={{ fontSize: "12px" }}
             >
               {obj.label}
@@ -145,9 +145,12 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-max min-w-full border-collapse">
+        <colgroup>
+          <col className="w-[250px] max-w-[250px]" />
+        </colgroup>
         <thead>
           <tr className="border-b-2">
-            <th className="sticky left-0 z-10 bg-background pr-4 pb-2 text-left">
+            <th className="sticky left-0 z-10 max-w-[250px] bg-background pr-4 pb-2 text-left">
               Participant
             </th>
             {participants.map((p, i) => (
@@ -179,7 +182,7 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
 
           {/* Comment fill rate footer */}
           <tr className="border-t-2 border-foreground/20">
-            <td className="sticky left-0 z-10 bg-background pt-3 pr-4 text-sm font-medium">
+            <td className="sticky left-0 z-10 max-w-[250px] bg-background pt-3 pr-4 text-sm font-medium break-words">
               Commentaires d&apos;objectifs
             </td>
             {participants.map((p, i) => {
