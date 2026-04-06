@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import type { ParticipantData, Sphere } from "./types";
 import { SPHERE_SHEETS, SYNTHESE_SHEET } from "./constants";
 import { parseSphere } from "./sphere";
@@ -10,6 +9,7 @@ export type { GlobalStats, SphereId } from "./types";
 export async function parseQualificationFile(
   file: File,
 ): Promise<ParticipantData> {
+  const XLSX = await import("xlsx");
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array" });
 

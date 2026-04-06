@@ -1,59 +1,40 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { FileUploader } from "@/components/FileUploader"
 import { Dashboard } from "@/components/Dashboard"
 import { parseQualificationFile } from "@/lib/parser"
-import type { GlobalStats, ParticipantData, SphereId } from "@/lib/parser/types"
+import type { ParticipantData } from "@/lib/parser/types"
 import { computeGlobalStats } from "@/lib/stats"
-import {
-  loadParticipants,
-  saveParticipants,
-  clearParticipants,
-} from "@/lib/storage"
+import { loadParticipants, saveParticipants } from "@/lib/storage"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ArrowDownWideNarrow, Trash2, X } from "lucide-react"
 import { SPHERE_SHEETS } from "@/lib/parser/constants"
 
-function initState(): {
-  participants: ParticipantData[]
-  globalStats: GlobalStats | null
-} {
-  const participants = loadParticipants()
-  return {
-    participants,
-    globalStats:
-      participants.length > 0 ? computeGlobalStats(participants) : null,
-  }
-}
-
 export function App() {
-  const [initial] = useState(initState)
   const [participants, setParticipants] = useState<ParticipantData[]>(
-    initial.participants
-  )
-  const [globalStats, setGlobalStats] = useState<GlobalStats | null>(
-    initial.globalStats
+    loadParticipants
   )
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
   const [sortBy, setSortBy] = useState<string>("")
 
-  const updateParticipants = useCallback((updated: ParticipantData[]) => {
-    setParticipants(updated)
-    setGlobalStats(updated.length > 0 ? computeGlobalStats(updated) : null)
-    saveParticipants(updated)
-  }, [])
+  const globalStats = useMemo(
+    () => (participants.length > 0 ? computeGlobalStats(participants) : null),
+    [participants]
+  )
+
+  useEffect(() => {
+    saveParticipants(participants)
+  }, [participants])
 
   const sortedParticipants = useMemo(() => {
     if (!sortBy) return participants
-    return [...participants].sort((a, b) => {
-      if (sortBy === "name") {
-        const aName = (a.totem || a.prenom).toLowerCase()
-        const bName = (b.totem || b.prenom).toLowerCase()
-        return aName.localeCompare(bName)
-      }
-      if (sortBy === "variance") {
-        const variance = (p: ParticipantData) => {
+
+    const computeKey = (p: ParticipantData): number | string => {
+      switch (sortBy) {
+        case "name":
+          return (p.totem || p.prenom).toLowerCase()
+        case "variance": {
           const pcts = p.spheres
             .map((s) => s.percentage)
             .filter((v): v is number => v !== null)
@@ -61,10 +42,7 @@ export function App() {
           const mean = pcts.reduce((a, b) => a + b, 0) / pcts.length
           return pcts.reduce((a, v) => a + (v - mean) ** 2, 0) / pcts.length
         }
-        return variance(b) - variance(a)
-      }
-      if (sortBy === "overall") {
-        const overall = (p: ParticipantData) => {
+        case "overall": {
           const pcts = p.spheres
             .map((s) => s.percentage)
             .filter((v): v is number => v !== null)
@@ -72,40 +50,41 @@ export function App() {
             ? pcts.reduce((a, b) => a + b, 0) / pcts.length
             : -1
         }
-        return overall(b) - overall(a)
+        case "comments":
+          return p.objectiveCommentsTotal - p.objectiveCommentsFilled
+        default:
+          return p.spheres.find((s) => s.id === sortBy)?.percentage ?? -1
       }
-      if (sortBy === "comments") {
-        const missing = (p: ParticipantData) =>
-          p.objectiveCommentsTotal - p.objectiveCommentsFilled
-        return missing(b) - missing(a)
-      }
-      // Sort by sphere id (A, B, C)
-      const aScore = a.spheres.find((s) => s.id === sortBy)?.percentage ?? -1
-      const bScore = b.spheres.find((s) => s.id === sortBy)?.percentage ?? -1
-      return bScore - aScore
+    }
+
+    const keyed = participants.map((p) => ({ p, key: computeKey(p) }))
+    keyed.sort((a, b) => {
+      if (typeof a.key === "string" && typeof b.key === "string")
+        return a.key.localeCompare(b.key)
+      return (b.key as number) - (a.key as number)
     })
+    return keyed.map(({ p }) => p)
   }, [participants, sortBy])
 
-  const handleFiles = useCallback(
-    async (files: File[]) => {
-      setIsLoading(true)
-      setErrors([])
-      const newErrors: string[] = []
-      const newParticipants: ParticipantData[] = []
+  const handleFiles = useCallback(async (files: File[]) => {
+    setIsLoading(true)
+    setErrors([])
+    const newErrors: string[] = []
+    const newParticipants: ParticipantData[] = []
 
-      for (const file of files) {
-        try {
-          const data = await parseQualificationFile(file)
-          newParticipants.push(data)
-        } catch (e) {
-          newErrors.push(
-            `Erreur "${file.name}": ${e instanceof Error ? e.message : String(e)}`
-          )
-        }
+    for (const file of files) {
+      try {
+        const data = await parseQualificationFile(file)
+        newParticipants.push(data)
+      } catch (e) {
+        newErrors.push(
+          `Erreur "${file.name}": ${e instanceof Error ? e.message : String(e)}`
+        )
       }
+    }
 
-      // Merge: replace existing participants with same totem+nom, add new ones
-      const updated = [...participants]
+    setParticipants((prev) => {
+      const updated = [...prev]
       for (const np of newParticipants) {
         const existingIdx = updated.findIndex(
           (p) => p.totem === np.totem && p.nom === np.nom
@@ -116,20 +95,15 @@ export function App() {
           updated.push(np)
         }
       }
+      return updated
+    })
+    setErrors(newErrors)
+    setIsLoading(false)
+  }, [])
 
-      updateParticipants(updated)
-      setErrors(newErrors)
-      setIsLoading(false)
-    },
-    [participants, updateParticipants]
-  )
-
-  const removeParticipant = useCallback(
-    (index: number) => {
-      updateParticipants(participants.filter((_, i) => i !== index))
-    },
-    [participants, updateParticipants]
-  )
+  const removeParticipant = useCallback((fileName: string) => {
+    setParticipants((prev) => prev.filter((p) => p.fileName !== fileName))
+  }, [])
 
   return (
     <div className="min-h-svh p-2">
@@ -151,14 +125,14 @@ export function App() {
                     {participants.length} participant
                     {participants.length > 1 ? "s" : ""}:
                   </span>
-                  {participants.map((p, i) => (
-                    <Badge key={i} variant="secondary" className="gap-1 pr-1">
+                  {participants.map((p) => (
+                    <Badge key={p.fileName} variant="secondary" className="gap-1 pr-1">
                       {p.totem || p.prenom}
                       <Button
                         variant="ghost"
                         size="icon"
                         className="size-4"
-                        onClick={() => removeParticipant(i)}
+                        onClick={() => removeParticipant(p.fileName)}
                       >
                         <X className="size-3" />
                       </Button>
@@ -173,10 +147,7 @@ export function App() {
                   variant="ghost"
                   size="sm"
                   className="text-xs text-muted-foreground"
-                  onClick={() => {
-                    updateParticipants([])
-                    clearParticipants()
-                  }}
+                  onClick={() => setParticipants([])}
                 >
                   <Trash2 className="size-3" />
                   Tout supprimer
