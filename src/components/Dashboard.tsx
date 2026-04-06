@@ -144,7 +144,7 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse">
+      <table className="w-max min-w-full border-collapse">
         <thead>
           <tr className="border-b-2">
             <th className="sticky left-0 z-10 bg-background pr-4 pb-2 text-left">
