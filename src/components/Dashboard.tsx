@@ -1,6 +1,8 @@
-import type { GlobalStats, ParticipantData, Sphere } from "@/lib/parser/types";
+import { useState } from "react";
+import type { GlobalStats, ParticipantData, Sphere, SphereId } from "@/lib/parser/types";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DashboardProps {
@@ -28,7 +30,6 @@ const SPHERE_HEADER_BG: Record<string, string> = {
   C: "bg-green-100 dark:bg-green-950/50",
 };
 
-
 function formatVariance(variance: number): string {
   return `±${Math.round(Math.sqrt(variance) * 100)}%`;
 }
@@ -46,11 +47,15 @@ function SphereRow({
   participants,
   globalStats,
   sphereIndex,
+  collapsed,
+  onToggle,
 }: {
   sphere: Sphere;
   participants: ParticipantData[];
   globalStats: GlobalStats;
   sphereIndex: number;
+  collapsed: boolean;
+  onToggle: () => void;
 }) {
   const sphereId = sphere.id;
   const gStats = globalStats.spheres[sphereId];
@@ -60,7 +65,15 @@ function SphereRow({
       {/* Sphere header row */}
       <tr className={cn("border-t-2 border-foreground/20", SPHERE_HEADER_BG[sphereId])}>
         <td className={cn("sticky left-0 z-10 max-w-[250px] py-2 pr-4 font-bold break-words", SPHERE_HEADER_BG[sphereId] ?? "bg-background")} style={{ fontSize: "14px" }}>
-          {sphere.name}
+          <button
+            onClick={onToggle}
+            className="flex items-center gap-1"
+          >
+            {collapsed
+              ? <ChevronRight className="size-4 shrink-0" />
+              : <ChevronDown className="size-4 shrink-0" />}
+            {sphere.name}
+          </button>
         </td>
         {participants.map((p, pi) => {
           const s = p.spheres[sphereIndex];
@@ -93,53 +106,54 @@ function SphereRow({
       </tr>
 
       {/* Objective rows */}
-      {sphere.objectives.map((obj, oi) => {
-        const gObjStats = globalStats.objectives[`${sphereId}-${oi}`];
-        return (
-          <tr key={oi} className="border-t border-muted">
-            <td
-              className="sticky left-0 z-10 max-w-[250px] bg-background py-1.5 pr-4 pl-4 break-words"
-              style={{ fontSize: "12px" }}
-            >
-              {obj.label}
-            </td>
-            {participants.map((p, pi) => {
-              const pObj = p.spheres[sphereIndex].objectives[oi];
-              if (!pObj) return <td key={pi} className="px-4 text-center">–</td>;
-              return (
-                <td
-                  key={pi}
-                  className={cn(
-                    "px-4 py-1.5 text-center",
-                    pObj.allFilledButNoComment && "bg-red-100 dark:bg-red-950",
-                  )}
-                  style={{ fontSize: "12px" }}
-                >
-                  <span className={cn("font-medium", pctColorClass(pObj.percentage))}>{formatPct(pObj.percentage)}</span>
-                  {pObj.allFilledButNoComment && (
-                    <div className="text-[10px] font-medium text-red-600 dark:text-red-400">
-                      Commentaire manquant
-                    </div>
-                  )}
-                </td>
-              );
-            })}
-            <td
-              className="bg-muted/50 px-4 py-1.5 text-center"
-              style={{ fontSize: "12px" }}
-            >
-              <span className={cn("font-medium", gObjStats ? pctColorClass(gObjStats.mean) : "")}>
-                {gObjStats ? formatPct(gObjStats.mean) : "–"}
-              </span>
-              {gObjStats && (
-                <span className="text-muted-foreground ml-1 text-[10px]">
-                  {formatVariance(gObjStats.variance)}
+      {!collapsed &&
+        sphere.objectives.map((obj, oi) => {
+          const gObjStats = globalStats.objectives[`${sphereId}-${oi}`];
+          return (
+            <tr key={oi} className="border-t border-muted">
+              <td
+                className="sticky left-0 z-10 max-w-[250px] bg-background py-1.5 pr-4 pl-4 break-words"
+                style={{ fontSize: "12px" }}
+              >
+                {obj.label}
+              </td>
+              {participants.map((p, pi) => {
+                const pObj = p.spheres[sphereIndex].objectives[oi];
+                if (!pObj) return <td key={pi} className="px-4 text-center">–</td>;
+                return (
+                  <td
+                    key={pi}
+                    className={cn(
+                      "px-4 py-1.5 text-center",
+                      pObj.allFilledButNoComment && "bg-red-100 dark:bg-red-950",
+                    )}
+                    style={{ fontSize: "12px" }}
+                  >
+                    <span className={cn("font-medium", pctColorClass(pObj.percentage))}>{formatPct(pObj.percentage)}</span>
+                    {pObj.allFilledButNoComment && (
+                      <div className="text-[10px] font-medium text-red-600 dark:text-red-400">
+                        Commentaire manquant
+                      </div>
+                    )}
+                  </td>
+                );
+              })}
+              <td
+                className="bg-muted/50 px-4 py-1.5 text-center"
+                style={{ fontSize: "12px" }}
+              >
+                <span className={cn("font-medium", gObjStats ? pctColorClass(gObjStats.mean) : "")}>
+                  {gObjStats ? formatPct(gObjStats.mean) : "–"}
                 </span>
-              )}
-            </td>
-          </tr>
-        );
-      })}
+                {gObjStats && (
+                  <span className="text-muted-foreground ml-1 text-[10px]">
+                    {formatVariance(gObjStats.variance)}
+                  </span>
+                )}
+              </td>
+            </tr>
+          );
+        })}
     </>
   );
 }
@@ -147,8 +161,17 @@ function SphereRow({
 export function Dashboard({ participants, globalStats }: DashboardProps) {
   if (participants.length === 0) return null;
 
-  // Use first participant's sphere structure as reference for row labels
   const refSpheres = participants[0].spheres;
+
+  const [collapsedSpheres, setCollapsedSpheres] = useState<Record<SphereId, boolean>>({
+    A: false,
+    B: false,
+    C: false,
+  });
+
+  const toggleSphere = (id: SphereId) => {
+    setCollapsedSpheres((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   return (
     <div className="overflow-x-auto">
@@ -156,15 +179,15 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
         <colgroup>
           <col className="w-[250px] max-w-[250px]" />
         </colgroup>
-        <thead>
+        <thead className="sticky top-0 z-20">
           <tr className="border-b-2 bg-muted">
-            <th className="sticky left-0 z-10 max-w-[250px] bg-muted pr-4 pb-2 text-left">
+            <th className="sticky left-0 z-30 max-w-[250px] bg-muted pr-4 pb-2 text-left">
               Participant
             </th>
             {participants.map((p, i) => {
               const allPassed = p.spheres.every((s) => s.passed);
               return (
-                <th key={i} className="min-w-[140px] px-4 pb-2 text-center">
+                <th key={i} className="min-w-[140px] bg-muted px-4 pb-2 text-center">
                   <Badge
                     variant={allPassed ? "default" : "destructive"}
                     className="mb-1 text-[10px]"
@@ -191,6 +214,8 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
               participants={participants}
               globalStats={globalStats}
               sphereIndex={si}
+              collapsed={collapsedSpheres[sphere.id]}
+              onToggle={() => toggleSphere(sphere.id)}
             />
           ))}
 
