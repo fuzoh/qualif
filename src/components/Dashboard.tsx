@@ -154,14 +154,23 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
             <th className="sticky left-0 z-10 max-w-[250px] bg-background pr-4 pb-2 text-left">
               Participant
             </th>
-            {participants.map((p, i) => (
-              <th key={i} className="min-w-[140px] px-4 pb-2 text-center">
-                <div className="font-bold">{p.totem}</div>
-                <div className="text-muted-foreground text-xs font-normal">
-                  {p.prenom} {p.nom}
-                </div>
-              </th>
-            ))}
+            {participants.map((p, i) => {
+              const allPassed = p.spheres.every((s) => s.passed);
+              return (
+                <th key={i} className="min-w-[140px] px-4 pb-2 text-center">
+                  <Badge
+                    variant={allPassed ? "default" : "destructive"}
+                    className="mb-1 text-[10px]"
+                  >
+                    {allPassed ? "Réussi" : "Échoué"}
+                  </Badge>
+                  <div className="font-bold">{p.totem}</div>
+                  <div className="text-muted-foreground text-xs font-normal">
+                    {p.prenom} {p.nom}
+                  </div>
+                </th>
+              );
+            })}
             <th className="bg-muted/50 min-w-[140px] px-4 pb-2 text-center">
               <div className="font-bold">Global</div>
               <div className="text-muted-foreground text-xs font-normal">
