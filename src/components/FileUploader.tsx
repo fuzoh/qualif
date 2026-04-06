@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
@@ -10,6 +10,7 @@ interface FileUploaderProps {
 
 export function FileUploader({ onFilesSelected, isLoading }: FileUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -42,24 +43,28 @@ export function FileUploader({ onFilesSelected, isLoading }: FileUploaderProps) 
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
     >
-      <CardContent className="flex flex-col items-center gap-3 py-8">
-        <Upload className="text-muted-foreground size-8" />
+      <CardContent className="flex items-center justify-center gap-3 py-4">
+        <Upload className="text-muted-foreground size-5" />
         <p className="text-muted-foreground text-sm">
           Glisser des fichiers .xlsx ici ou
         </p>
-        <label className="cursor-pointer">
-          <Button variant="outline" size="sm" disabled={isLoading} type="button">
-            {isLoading ? "Chargement..." : "Choisir des fichiers"}
-          </Button>
-          <input
-            type="file"
-            accept=".xlsx"
-            multiple
-            className="hidden"
-            onChange={handleFileInput}
-            disabled={isLoading}
-          />
-        </label>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isLoading}
+          onClick={() => inputRef.current?.click()}
+        >
+          {isLoading ? "Chargement..." : "Choisir des fichiers"}
+        </Button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".xlsx"
+          multiple
+          className="hidden"
+          onChange={handleFileInput}
+          disabled={isLoading}
+        />
       </CardContent>
     </Card>
   );

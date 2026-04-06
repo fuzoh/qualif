@@ -6,7 +6,7 @@ import type { GlobalStats, ParticipantData } from "@/lib/parser/types";
 import { computeGlobalStats } from "@/lib/stats";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 
 export function App() {
   const [participants, setParticipants] = useState<ParticipantData[]>([]);
@@ -106,6 +106,18 @@ export function App() {
                   </Button>
                 </Badge>
               ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground text-xs"
+                onClick={() => {
+                  setParticipants([]);
+                  setGlobalStats(null);
+                }}
+              >
+                <Trash2 className="size-3" />
+                Tout supprimer
+              </Button>
             </div>
 
             {globalStats && (
