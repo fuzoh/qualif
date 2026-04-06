@@ -200,9 +200,10 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
                     if (pcts.length < 2) return null;
                     const mean = pcts.reduce((a, b) => a + b, 0) / pcts.length;
                     const variance = pcts.reduce((a, v) => a + (v - mean) ** 2, 0) / pcts.length;
+                    const total = Math.round(mean * 100);
                     return (
                       <div className="text-muted-foreground text-[10px] font-normal">
-                        {formatVariance(variance)}
+                        {formatVariance(variance)} &middot; {total}%
                       </div>
                     );
                   })()}
