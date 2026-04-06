@@ -22,6 +22,13 @@ function pctColorClass(value: number | null): string {
   return "text-blue-600 dark:text-blue-400";
 }
 
+const SPHERE_HEADER_BG: Record<string, string> = {
+  A: "bg-yellow-100 dark:bg-yellow-950/50",
+  B: "bg-blue-100 dark:bg-blue-950/50",
+  C: "bg-green-100 dark:bg-green-950/50",
+};
+
+
 function formatVariance(variance: number): string {
   return `±${Math.round(Math.sqrt(variance) * 100)}%`;
 }
@@ -51,8 +58,8 @@ function SphereRow({
   return (
     <>
       {/* Sphere header row */}
-      <tr className="border-t-2 border-foreground/20">
-        <td className="sticky left-0 z-10 max-w-[250px] bg-background py-2 pr-4 font-bold break-words" style={{ fontSize: "14px" }}>
+      <tr className={cn("border-t-2 border-foreground/20", SPHERE_HEADER_BG[sphereId])}>
+        <td className={cn("sticky left-0 z-10 max-w-[250px] py-2 pr-4 font-bold break-words", SPHERE_HEADER_BG[sphereId] ?? "bg-background")} style={{ fontSize: "14px" }}>
           {sphere.name}
         </td>
         {participants.map((p, pi) => {
@@ -150,8 +157,8 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
           <col className="w-[250px] max-w-[250px]" />
         </colgroup>
         <thead>
-          <tr className="border-b-2">
-            <th className="sticky left-0 z-10 max-w-[250px] bg-background pr-4 pb-2 text-left">
+          <tr className="border-b-2 bg-muted/30">
+            <th className="sticky left-0 z-10 max-w-[250px] bg-muted/30 pr-4 pb-2 text-left">
               Participant
             </th>
             {participants.map((p, i) => {
@@ -191,8 +198,8 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
           ))}
 
           {/* Comment fill rate footer */}
-          <tr className="border-t-2 border-foreground/20">
-            <td className="sticky left-0 z-10 max-w-[250px] bg-background pt-3 pr-4 text-sm font-medium break-words">
+          <tr className="border-t-2 border-foreground/20 bg-muted/30">
+            <td className="sticky left-0 z-10 max-w-[250px] bg-muted/30 pt-3 pr-4 text-sm font-medium break-words">
               Commentaires d&apos;objectifs
             </td>
             {participants.map((p, i) => {
@@ -216,8 +223,8 @@ export function Dashboard({ participants, globalStats }: DashboardProps) {
           </tr>
 
           {/* Completion progress bar row */}
-          <tr>
-            <td className="sticky left-0 z-10 max-w-[250px] bg-background pt-2 pr-4 text-sm font-medium break-words">
+          <tr className="bg-muted/30">
+            <td className="sticky left-0 z-10 max-w-[250px] bg-muted/30 pt-2 pr-4 text-sm font-medium break-words">
               Complétude
             </td>
             {participants.map((p, i) => {
