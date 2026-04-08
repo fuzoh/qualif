@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { GlobalStats, ParticipantData, Sphere, SphereId } from "@/lib/parser/types";
 import { computeThresholdPercentage } from "@/lib/parser/scoring";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,25 @@ function PassBadge({ passed }: { passed: boolean }) {
   );
 }
 
+function formatScore(score: number | null): string {
+  if (score === null) return "–";
+  return score.toFixed(1);
+}
+
+function scoreColorClass(score: number | null): string {
+  if (score === null) return "";
+  if (score < 2) return "text-red-600 dark:text-red-400";
+  if (score < 3) return "text-orange-600 dark:text-orange-400";
+  if (score <= 4) return "text-green-600 dark:text-green-400";
+  return "text-blue-600 dark:text-blue-400";
+}
+
+function computeAvgScore(scores: (number | null)[]): number | null {
+  const valid = scores.filter((s): s is number => s !== null && s > 0);
+  if (valid.length === 0) return null;
+  return valid.reduce((a, b) => a + b, 0) / valid.length;
+}
+
 function SphereRow({
   sphere,
   participants,
@@ -60,6 +79,11 @@ function SphereRow({
 }) {
   const sphereId = sphere.id;
   const gStats = globalStats.spheres[sphereId];
+  const [expandedObjectives, setExpandedObjectives] = useState<Record<number, boolean>>({});
+
+  const toggleObjective = (oi: number) => {
+    setExpandedObjectives((prev) => ({ ...prev, [oi]: !prev[oi] }));
+  };
 
   return (
     <>
@@ -110,67 +134,147 @@ function SphereRow({
       {!collapsed &&
         sphere.objectives.map((obj, oi) => {
           const gObjStats = globalStats.objectives[`${sphereId}-${oi}`];
+          const isExpanded = !!expandedObjectives[oi];
           return (
-            <tr key={oi} className="border-t border-muted">
-              <td
-                className="sticky left-0 z-10 max-w-[250px] bg-background py-1.5 pr-4 pl-4 break-words"
-                style={{ fontSize: "12px" }}
-              >
-                {obj.label}
-              </td>
-              {participants.map((p, pi) => {
-                const pSphere = p.spheres[sphereIndex];
-                const pObj = pSphere.objectives[oi];
-                if (!pObj) return <td key={pi} className="px-4 text-center">–</td>;
+            <Fragment key={oi}>
+              <tr className="border-t border-muted">
+                <td
+                  className="sticky left-0 z-10 max-w-[250px] bg-background py-1.5 pr-4 pl-4 break-words"
+                  style={{ fontSize: "12px" }}
+                >
+                  <button
+                    onClick={() => toggleObjective(oi)}
+                    className="flex items-center gap-1 text-left"
+                  >
+                    {isExpanded
+                      ? <ChevronDown className="size-3 shrink-0" />
+                      : <ChevronRight className="size-3 shrink-0" />}
+                    {obj.label}
+                  </button>
+                </td>
+                {participants.map((p, pi) => {
+                  const pSphere = p.spheres[sphereIndex];
+                  const pObj = pSphere.objectives[oi];
+                  if (!pObj) return <td key={pi} className="px-4 text-center">–</td>;
 
-                // If objective has no score, show hint
-                if (pObj.percentage === null) {
-                  const hint = computeThresholdPercentage(pSphere, oi);
+                  if (pObj.percentage === null) {
+                    const hint = computeThresholdPercentage(pSphere, oi);
+                    return (
+                      <td key={pi} className="px-4 py-1.5 text-center" style={{ fontSize: "12px" }}>
+                        {hint !== null ? (
+                          <span className="text-muted-foreground/60 text-[11px]">
+                            {pSphere.passed ? `< ${formatPct(hint)}` : `> ${formatPct(hint)}`}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">–</span>
+                        )}
+                      </td>
+                    );
+                  }
+
                   return (
-                    <td key={pi} className="px-4 py-1.5 text-center" style={{ fontSize: "12px" }}>
-                      {hint !== null ? (
-                        <span className="text-muted-foreground/60 text-[11px]">
-                          {pSphere.passed ? `< ${formatPct(hint)}` : `> ${formatPct(hint)}`}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">–</span>
+                    <td
+                      key={pi}
+                      className={cn(
+                        "px-4 py-1.5 text-center",
+                        pObj.allFilledButNoComment && "bg-red-100 dark:bg-red-950",
+                      )}
+                      style={{ fontSize: "12px" }}
+                    >
+                      <span className={cn("font-medium", pctColorClass(pObj.percentage))}>{formatPct(pObj.percentage)}</span>
+                      {pObj.allFilledButNoComment && (
+                        <div className="text-[10px] font-medium text-red-600 dark:text-red-400">
+                          Commentaire manquant
+                        </div>
                       )}
                     </td>
                   );
-                }
-
-                return (
-                  <td
-                    key={pi}
-                    className={cn(
-                      "px-4 py-1.5 text-center",
-                      pObj.allFilledButNoComment && "bg-red-100 dark:bg-red-950",
-                    )}
-                    style={{ fontSize: "12px" }}
-                  >
-                    <span className={cn("font-medium", pctColorClass(pObj.percentage))}>{formatPct(pObj.percentage)}</span>
-                    {pObj.allFilledButNoComment && (
-                      <div className="text-[10px] font-medium text-red-600 dark:text-red-400">
-                        Commentaire manquant
-                      </div>
-                    )}
-                  </td>
-                );
-              })}
-              <td
-                className="bg-muted/50 px-4 py-1.5 text-center"
-                style={{ fontSize: "12px" }}
-              >
-                <span className={cn("font-medium", gObjStats ? pctColorClass(gObjStats.mean) : "")}>
-                  {gObjStats ? formatPct(gObjStats.mean) : "–"}
-                </span>
-                {gObjStats && (
-                  <span className="text-muted-foreground ml-1 text-[10px]">
-                    {formatVariance(gObjStats.variance)}
+                })}
+                <td
+                  className="bg-muted/50 px-4 py-1.5 text-center"
+                  style={{ fontSize: "12px" }}
+                >
+                  <span className={cn("font-medium", gObjStats ? pctColorClass(gObjStats.mean) : "")}>
+                    {gObjStats ? formatPct(gObjStats.mean) : "–"}
                   </span>
-                )}
-              </td>
-            </tr>
+                  {gObjStats && (
+                    <span className="text-muted-foreground ml-1 text-[10px]">
+                      {formatVariance(gObjStats.variance)}
+                    </span>
+                  )}
+                </td>
+              </tr>
+
+              {/* Criteria and Indicators rows */}
+              {isExpanded &&
+                obj.criteria.map((crit, ci) => {
+                  const critAvg = computeAvgScore(
+                    participants.map((p) => p.spheres[sphereIndex].objectives[oi]?.criteria[ci]?.averageScore ?? null)
+                  );
+                  return (
+                    <Fragment key={`c-${ci}`}>
+                      {/* Criterion row */}
+                      <tr className="border-t border-muted/50 bg-muted/20">
+                        <td
+                          className="sticky left-0 z-10 max-w-[250px] bg-muted/20 py-1 pr-4 pl-8 break-words font-medium"
+                          style={{ fontSize: "11px" }}
+                        >
+                          {crit.label}
+                        </td>
+                        {participants.map((p, pi) => {
+                          const pCrit = p.spheres[sphereIndex].objectives[oi]?.criteria[ci];
+                          const score = pCrit?.averageScore ?? null;
+                          return (
+                            <td key={pi} className="px-4 py-1 text-center" style={{ fontSize: "11px" }}>
+                              <span className={cn("font-medium", scoreColorClass(score))}>
+                                {formatScore(score)}
+                              </span>
+                            </td>
+                          );
+                        })}
+                        <td className="bg-muted/50 px-4 py-1 text-center" style={{ fontSize: "11px" }}>
+                          <span className={cn("font-medium", scoreColorClass(critAvg))}>
+                            {formatScore(critAvg)}
+                          </span>
+                        </td>
+                      </tr>
+
+                      {/* Indicator rows */}
+                      {crit.indicators.map((ind, ii) => {
+                        const indAvg = computeAvgScore(
+                          participants.map((p) => p.spheres[sphereIndex].objectives[oi]?.criteria[ci]?.indicators[ii]?.score ?? null)
+                        );
+                        return (
+                          <tr key={`i-${ii}`} className="border-t border-muted/30">
+                            <td
+                              className="sticky left-0 z-10 max-w-[250px] bg-background py-0.5 pr-4 pl-12 break-words text-muted-foreground"
+                              style={{ fontSize: "10px" }}
+                            >
+                              {ind.label}
+                            </td>
+                            {participants.map((p, pi) => {
+                              const pInd = p.spheres[sphereIndex].objectives[oi]?.criteria[ci]?.indicators[ii];
+                              const score = pInd?.score ?? null;
+                              return (
+                                <td key={pi} className="px-4 py-0.5 text-center" style={{ fontSize: "10px" }}>
+                                  <span className={scoreColorClass(score)}>
+                                    {score === null || score === 0 ? "–" : score}
+                                  </span>
+                                </td>
+                              );
+                            })}
+                            <td className="bg-muted/50 px-4 py-0.5 text-center" style={{ fontSize: "10px" }}>
+                              <span className={cn("font-medium", scoreColorClass(indAvg))}>
+                                {formatScore(indAvg)}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  );
+                })}
+            </Fragment>
           );
         })}
     </>
