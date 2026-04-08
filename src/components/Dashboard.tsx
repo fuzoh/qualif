@@ -216,7 +216,7 @@ function SphereRow({
                       {/* Criterion row */}
                       <tr className="border-t border-muted/50 bg-muted/20">
                         <td
-                          className="sticky left-0 z-10 max-w-[250px] bg-muted/20 py-1 pr-4 pl-8 break-words font-medium"
+                          className="sticky left-0 z-10 max-w-[250px] bg-neutral-100 dark:bg-neutral-900 py-1 pr-4 pl-8 break-words font-medium"
                           style={{ fontSize: "11px" }}
                         >
                           {crit.label}
